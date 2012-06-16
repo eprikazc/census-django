@@ -14,7 +14,7 @@ try:
     census_api_key = os.getenv("CENSUS_API_KEY", settings.CENSUS_API_KEY)
 except NameError:
     raise Exception("CENSUS_API_KEY setting is not defined!")
-census_api_client = Census(census_api_client)
+census_api_client = Census(census_api_key)
 
 api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/2010acs5_variables.xml").read()
 api_schema = ElementTree.fromstring(api_schema_str)
