@@ -12,3 +12,4 @@ redis==2.4.13
 requests==0.13.1
 rsa==3.0.1
 wsgiref==0.1.2
+psycopg2
