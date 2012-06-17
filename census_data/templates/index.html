@@ -1,11 +1,30 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
         "http://www.w3.org/TR/html4/loose.dtd">
-<html>
+<html xmlns="http://www.w3.org/1999/html">
 <head>
     <title></title>
 </head>
 <body>
 <form action="" method="GET">
+    <div id="statistic-area"></div>
+        <label for="statistic">Statistic:</label>
+        <select id="statistic">
+            {% for stat in statistics %}
+                <option value="{{ stat }}">{{ stat }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="state-area">
+        <label for="state">State:</label>
+        <select id="state">
+            {% for elem in states %}
+                <option value="{{ elem.state }}">{{ elem.NAME }}</option>
+            {% endfor %}
+        </select>
+        <button class="get_data">Get Data</button>
+    </div>
+
     <div id="county-area">
         <label for="county">County:</label>
         <select id="county">
@@ -13,22 +32,28 @@
                 <option value="{{ county.state }},{{ county.county }}">{{ county.STATE_NAME }}, {{ county.NAME }}</option>
             {% endfor %}
         </select>
+        <button  class="get_data">Get Data</button>
     </div>
-    <div id="statistic-area"></div>
+
+    <div id="msa-area">
+        <label for="msa">MSA:</label>
+        <select id="msa">
+            {% for msa in msas %}
+                <option value="{{ msa.state }},{{ msa.msa_code }},">{{ msa.STATE_NAME }}, {{ msa.NAME }}</option>
+            {% endfor %}
+        </select>
+        <button  class="get_data">Get Data</button>
+    </div>
+
+
+
     <div id="table-area"></div>
 
     </div>
 </form>
 
-<script type="text/template" id="template-statistic">
-    <label for="statistic">Statistic:</label>
-    <select id="statistic">
-        <% _.each(statistics, function(elem) { %>
-        <option value="<%= elem %>"><%= elem %></option>
-        <% }); %>
-    </select>
-</script>
 <script type="text/template" id="template-table">
+    <h6>"<%= stat_name %>" for <%= area %></h6>
     <table>
         <tbody>
             <% _.each(table_data, function(elem) { %>
@@ -47,36 +72,23 @@
 <script type="text/javascript" src="/static/underscore.js"></script>
 <script type="text/javascript">
     $(function(){
-        $("#state").live("change", function(){
-            $.getJSON("/counties/" + $("option:selected", $("#state")).attr("value"), function(data){
-                var county_select = _.template($("#template-county").html(), {counties: data});
-                $("#county-area").html(county_select);
-
-            });
-            $("#county-area").html("");
-            $("#statistic-area").html("");
+        $("button.get_data").click(function(event){
+            event.preventDefault();
             $("#table-area").html("");
-        });
-        $("#county").live("change", function(){
-            $.getJSON("/stat/", function(data){
-                var stat_select = _.template($("#template-statistic").html(), {statistics: data});
-                $("#statistic-area").html(stat_select);
-
-            });
-            $("#statistic-area").html("");
-            $("#table-area").html("");
-        });
-        $("#statistic").live("change", function(){
-            $("#table-area").html("");
+            var statistic_selected = $("option:selected", $("#statistic"));
+            var geo_region_selected = $("option:selected", $(this).siblings("select"));
             $.getJSON("/stat/" +
-                    $("option:selected", $("#county")).attr("value") + "/" +
-                    $("option:selected", $("#statistic")).attr("value") + "/",
+                    geo_region_selected.attr("value") + "/" +
+                    statistic_selected.attr("value") + "/",
                     function(data){
-                        var table_data = _.template($("#template-table").html(), {table_data: data});
+                        var table_data = _.template(
+                            $("#template-table").html(),
+                            {table_data: data, stat_name: statistic_selected.text(), area: geo_region_selected.text()}
+                        );
                         $("#table-area").html(table_data);
                     });
-        });
 
+        });
 
     });
 </script>

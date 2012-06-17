@@ -16,7 +16,7 @@ except NameError:
     raise Exception("CENSUS_API_KEY setting is not defined!")
 census_api_client = Census(census_api_key)
 
-api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/2010acs5_variables.xml").read()
+api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/sf1.xml").read()
 api_schema = ElementTree.fromstring(api_schema_str)
 
 api_params = {}
@@ -37,36 +37,64 @@ def cached_call(key, method, *args, **kwargs):
 
 
 def index(request):
-    states = cached_call("states", census_api_client.acs.state, ("NAME",), "*")
-    counties = cached_call("counties", census_api_client.acs.state_county, ("NAME",), "*", "*")
+    states = cached_call("states", census_api_client.sf1.state, ("NAME",), "*")
+    counties = cached_call("counties", census_api_client.sf1.state_county, ("NAME",), "*", "*")
+    # Census API does not allow to receive all MSAs in one request. Therefore we make request for every state
+    msas = []
     state_names = {}
     for state_data in states:
         state_names[state_data['state']] = state_data['NAME']
+        msa_res = cached_call(
+            "msa,%s" %state_data['state'],
+            census_api_client.sf1.state_msa, ("NAME",), state_data['state'], "*"
+        )
+        for i in range(len(msa_res)):
+            msa_res[i]["msa_code"] = msa_res[i]['metropolitan statistical area/micropolitan statistical area']
+            msa_res[i]["STATE_NAME"] = state_data['NAME']
+        msas.extend(msa_res)
     for i in range(len(counties)):
         counties[i]["STATE_NAME"] = state_names[counties[i]["state"]]
-    return render_to_response("index.html", RequestContext(request, {"counties": counties}))
+    return render_to_response("index.html", RequestContext(
+        request, {"counties": counties, "states": states, "statistics": api_params.keys(), "msas": msas}
+    ))
 
 def get_statistics(request):
     return HttpResponse(dumps(api_params.keys()))
 
-def get_statistics_for_county(request, state_county, statistic_type):
+def get_statistics_for_area(request, area, statistic_type):
+    """
+    'area' parameter may have following values:
+    area=01 - state is 01
+    area=01,001 - state is 01, county is 001
+    area=01,001, - state is 01, MSA is 001
+    """
     # CENSUS API allows to pass maximum 5 statitics in request.
     # Therefore we have to make several successive requests to get all statistics from the group
-    redis_cache_key = ",".join([state_county, statistic_type])
+    redis_cache_key = ",".join([area, statistic_type])
     cache_res = redis_conn.get(redis_cache_key)
     if cache_res is not None:
         return HttpResponse(cache_res)
-    state_id, county_id = state_county.split(",")
+    split_area = area.split(",")
+    if len(split_area) ==1:
+        api_method = census_api_client.sf1.state
+        api_method_args = tuple(split_area)
+    elif len(split_area) == 2:
+        api_method = census_api_client.sf1.state_county
+        api_method_args = tuple(split_area)
+    elif len(split_area) == 3:
+        api_method = census_api_client.sf1.state_msa
+        api_method_args = tuple(split_area[:2]) # truncating 3rd dummy parameter
+    else:
+        raise Exception("Cannot parse string '%s'" %area)
     res = []
     for i in range(0, len(api_params[statistic_type].keys()), 5):
         j = min(len(api_params[statistic_type].keys()), i+5)
-        part_res = census_api_client.acs.state_county(
+        part_res = api_method(
             tuple(api_params[statistic_type].keys()[i:j]),
-            state_id,
-            county_id
+            *api_method_args
         )[0]
         for key, value in part_res.items():
-            if key in ("county", "state"):
+            if key in ("county", "state", "metropolitan statistical area/micropolitan statistical area"):
                 continue
             res.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
     res = dumps(sorted(res, key=lambda elem: elem[0]))
