@@ -22,7 +22,7 @@
             {% for state_name, state_counties in counties.items %}
                 <optgroup label="{{ state_name }}">
                 {% for county in state_counties %}
-                    <option value="{{ county.state }},{{ county.county }}">{{ county.STATE_NAME }}, {{ county.NAME }}</option>
+                    <option value="{{ county.state }},{{ county.county }}">{{ county.NAME }}, {{ county.STATE_ABBREVIATION }}</option>
                 {% endfor %}
                 </optgroup>
             {% endfor %}
@@ -36,7 +36,7 @@
             {% for state_name, state_msas in msas.items %}
                 <optgroup label="{{ state_name }}">
                 {% for msa in state_msas %}
-                    <option value="{{ msa.state }},{{ msa.msa_code }},">{{ msa.STATE_NAME }}, {{ msa.NAME }}</option>
+                    <option value="{{ msa.state }},{{ msa.msa_code }},">{{ msa.NAME }}, {{ msa.STATE_ABBREVIATION }}</option>
                 {% endfor %}
             {% endfor %}
         </select>

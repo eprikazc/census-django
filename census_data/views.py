@@ -10,6 +10,61 @@ from django.template.context import RequestContext
 import os
 import redis
 
+STATE_ABBREVIATIONS = {
+"Alabama": "AL",
+"Alaska": "AK",
+"Arizona": "AZ",
+"Arkansas": "AR",
+"California": "CA",
+"Colorado": "CO",
+"Connecticut": "CT",
+"Delaware": "DE",
+"District of Columbia": "DC",
+"Florida": "FL",
+"Georgia": "GA",
+"Hawaii": "HI",
+"Idaho": "ID",
+"Illinois": "IL",
+"Indiana": "IN",
+"Iowa": "IA",
+"Kansas": "KS",
+"Kentucky": "KY",
+"Louisiana": "LA",
+"Maine": "ME",
+"Maryland": "MD",
+"Massachusetts": "MA",
+"Michigan": "MI",
+"Minnesota": "MN",
+"Mississippi": "MS",
+"Missouri": "MO",
+"Montana": "MT",
+"Nebraska": "NE",
+"Nevada": "NV",
+"New Hampshire": "NH",
+"New Jersey": "NJ",
+"New Mexico": "NM",
+"New York": "NY",
+"North Carolina": "NC",
+"North Dakota": "ND",
+"Ohio": "OH",
+"Oklahoma": "OK",
+"Oregon": "OR",
+"Pennsylvania": "PA",
+"Rhode Island": "RI",
+"South Carolina": "SC",
+"South Dakota": "SD",
+"Tennessee": "TN",
+"Texas": "TX",
+"Utah": "UT",
+"Vermont": "VT",
+"Virginia": "VA",
+"Washington": "WA",
+"West Virginia": "WV",
+"Wisconsin": "WI",
+"Wyoming": "WY",
+"Puerto Rico": "PR",
+}
+
 STATISTICS_OF_INTEREST = ("Total Population [1]", "TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]")
 
 redis_conn = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
@@ -19,7 +74,10 @@ except NameError:
     raise Exception("CENSUS_API_KEY setting is not defined!")
 census_api_client = Census(census_api_key)
 
-api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/sf1.xml").read()
+api_schema_str = redis_conn.get("api_schema_str")
+if api_schema_str is None:
+    api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/sf1.xml").read()
+    redis_conn.set("api_schema_str", api_schema_str)
 api_schema = ElementTree.fromstring(api_schema_str)
 
 api_params = {}
@@ -55,11 +113,12 @@ def index(request):
         for i in range(len(msa_res)):
             msa_res[i]["msa_code"] = msa_res[i]['metropolitan statistical area/micropolitan statistical area']
             msa_res[i]["STATE_NAME"] = state_data['NAME']
+            msa_res[i]["STATE_ABBREVIATION"] = STATE_ABBREVIATIONS[state_data["NAME"]]
         msas[state_data['NAME']] = msa_res
     for i in range(len(counties_list)):
-        county_state = state_names[counties_list[i]["state"]]
-        counties_list[i]["STATE_NAME"] = state_names[counties_list[i]["state"]]
-        counties.setdefault(county_state, []).append(counties_list[i])
+        state_name = state_names[counties_list[i]["state"]]
+        counties_list[i]["STATE_ABBREVIATION"] = STATE_ABBREVIATIONS[state_name]
+        counties.setdefault(state_name, []).append(counties_list[i])
     return render_to_response("index.html", RequestContext(
         request, {"counties": counties, "states": states, "msas": msas}
     ))
