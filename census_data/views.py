@@ -9,6 +9,8 @@ from django.template.context import RequestContext
 import os
 import redis
 
+STATISTICS_OF_INTEREST = ("Total Population [1]", "TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]")
+
 redis_conn = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
 try:
     census_api_key = os.getenv("CENSUS_API_KEY", settings.CENSUS_API_KEY)
@@ -61,7 +63,7 @@ def index(request):
 def get_statistics(request):
     return HttpResponse(dumps(api_params.keys()))
 
-def get_statistics_for_area(request, area, statistic_type):
+def get_statistics_for_area(request, area):
     """
     'area' parameter may have following values:
     area=01 - state is 01
@@ -70,7 +72,8 @@ def get_statistics_for_area(request, area, statistic_type):
     """
     # CENSUS API allows to pass maximum 5 statitics in request.
     # Therefore we have to make several successive requests to get all statistics from the group
-    redis_cache_key = ",".join([area, statistic_type])
+    res = {}
+    redis_cache_key = area
     cache_res = redis_conn.get(redis_cache_key)
     if cache_res is not None:
         return HttpResponse(cache_res)
@@ -86,17 +89,21 @@ def get_statistics_for_area(request, area, statistic_type):
         api_method_args = tuple(split_area[:2]) # truncating 3rd dummy parameter
     else:
         raise Exception("Cannot parse string '%s'" %area)
-    res = []
-    for i in range(0, len(api_params[statistic_type].keys()), 5):
-        j = min(len(api_params[statistic_type].keys()), i+5)
-        part_res = api_method(
-            tuple(api_params[statistic_type].keys()[i:j]),
-            *api_method_args
-        )[0]
-        for key, value in part_res.items():
-            if key in ("county", "state", "metropolitan statistical area/micropolitan statistical area"):
-                continue
-            res.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
-    res = dumps(sorted(res, key=lambda elem: elem[0]))
+    for statistic_type in STATISTICS_OF_INTEREST:
+        print "Processing %s" %statistic_type
+        stat_data = []
+        for i in range(0, len(api_params[statistic_type].keys()), 5):
+            print "request #%s" %i
+            j = min(len(api_params[statistic_type].keys()), i+5)
+            part_res = api_method(
+                tuple(api_params[statistic_type].keys()[i:j]),
+                *api_method_args
+            )[0]
+            for key, value in part_res.items():
+                if key in ("county", "state", "metropolitan statistical area/micropolitan statistical area"):
+                    continue
+                stat_data.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
+        res[statistic_type] = sorted(stat_data, key=lambda elem: elem[0])
+    res = dumps(res)
     redis_conn.set(redis_cache_key, res)
     return HttpResponse(res)

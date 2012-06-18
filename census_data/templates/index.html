@@ -6,15 +6,6 @@
 </head>
 <body>
 <form action="" method="GET">
-    <div id="statistic-area"></div>
-        <label for="statistic">Statistic:</label>
-        <select id="statistic">
-            {% for stat in statistics %}
-                <option value="{{ stat }}">{{ stat }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
     <div id="state-area">
         <label for="state">State:</label>
         <select id="state">
@@ -53,17 +44,21 @@
 </form>
 
 <script type="text/template" id="template-table">
-    <h6>"<%= stat_name %>" for <%= area %></h6>
-    <table>
-        <tbody>
-            <% _.each(table_data, function(elem) { %>
-            <tr>
-                <td><%= elem[1] %></td>
-                <td><%= elem[2] %></td>
-            </tr>
-            <% }); %>
-        </tbody>
-    </table>
+    <h4>Statistics for <%= area %></h4>
+    <% for (var stat_name in stat_data) { %>
+        <h5><%= stat_name %></h5>
+        <table>
+            <tbody>
+                <% _.each(stat_data[stat_name], function(elem) { %>
+                <tr>
+                    <td><%= elem[1] %></td>
+                    <td><%= elem[2] %></td>
+                </tr>
+                <% }); %>
+            </tbody>
+        </table>
+        <br/>
+    <% } %>
 </script>
 
 
@@ -75,15 +70,13 @@
         $("button.get_data").click(function(event){
             event.preventDefault();
             $("#table-area").html("");
-            var statistic_selected = $("option:selected", $("#statistic"));
             var geo_region_selected = $("option:selected", $(this).siblings("select"));
             $.getJSON("/stat/" +
-                    geo_region_selected.attr("value") + "/" +
-                    statistic_selected.attr("value") + "/",
+                    geo_region_selected.attr("value") + "/",
                     function(data){
                         var table_data = _.template(
                             $("#template-table").html(),
-                            {table_data: data, stat_name: statistic_selected.text(), area: geo_region_selected.text()}
+                            {stat_data: data, area: geo_region_selected.text()}
                         );
                         $("#table-area").html(table_data);
                     });
