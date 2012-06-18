@@ -112,7 +112,6 @@ def index(request):
         )
         for i in range(len(msa_res)):
             msa_res[i]["msa_code"] = msa_res[i]['metropolitan statistical area/micropolitan statistical area']
-            msa_res[i]["STATE_NAME"] = state_data['NAME']
             msa_res[i]["STATE_ABBREVIATION"] = STATE_ABBREVIATIONS[state_data["NAME"]]
         msas[state_data['NAME']] = msa_res
     for i in range(len(counties_list)):
