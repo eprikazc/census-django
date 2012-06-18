@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from json import dumps, loads
 import urllib
 from xml.etree import ElementTree
@@ -40,9 +41,10 @@ def cached_call(key, method, *args, **kwargs):
 
 def index(request):
     states = cached_call("states", census_api_client.sf1.state, ("NAME",), "*")
-    counties = cached_call("counties", census_api_client.sf1.state_county, ("NAME",), "*", "*")
+    counties_list = cached_call("counties", census_api_client.sf1.state_county, ("NAME",), "*", "*")
     # Census API does not allow to receive all MSAs in one request. Therefore we make request for every state
-    msas = []
+    msas = OrderedDict()
+    counties = OrderedDict()
     state_names = {}
     for state_data in states:
         state_names[state_data['state']] = state_data['NAME']
@@ -53,11 +55,13 @@ def index(request):
         for i in range(len(msa_res)):
             msa_res[i]["msa_code"] = msa_res[i]['metropolitan statistical area/micropolitan statistical area']
             msa_res[i]["STATE_NAME"] = state_data['NAME']
-        msas.extend(msa_res)
-    for i in range(len(counties)):
-        counties[i]["STATE_NAME"] = state_names[counties[i]["state"]]
+        msas[state_data['NAME']] = msa_res
+    for i in range(len(counties_list)):
+        county_state = state_names[counties_list[i]["state"]]
+        counties_list[i]["STATE_NAME"] = state_names[counties_list[i]["state"]]
+        counties.setdefault(county_state, []).append(counties_list[i])
     return render_to_response("index.html", RequestContext(
-        request, {"counties": counties, "states": states, "statistics": api_params.keys(), "msas": msas}
+        request, {"counties": counties, "states": states, "msas": msas}
     ))
 
 def get_statistics(request):

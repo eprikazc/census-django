@@ -19,8 +19,12 @@
     <div id="county-area">
         <label for="county">County:</label>
         <select id="county">
-            {% for county in counties %}
-                <option value="{{ county.state }},{{ county.county }}">{{ county.STATE_NAME }}, {{ county.NAME }}</option>
+            {% for state_name, state_counties in counties.items %}
+                <optgroup label="{{ state_name }}">
+                {% for county in state_counties %}
+                    <option value="{{ county.state }},{{ county.county }}">{{ county.STATE_NAME }}, {{ county.NAME }}</option>
+                {% endfor %}
+                </optgroup>
             {% endfor %}
         </select>
         <button  class="get_data">Get Data</button>
@@ -29,8 +33,11 @@
     <div id="msa-area">
         <label for="msa">MSA:</label>
         <select id="msa">
-            {% for msa in msas %}
-                <option value="{{ msa.state }},{{ msa.msa_code }},">{{ msa.STATE_NAME }}, {{ msa.NAME }}</option>
+            {% for state_name, state_msas in msas.items %}
+                <optgroup label="{{ state_name }}">
+                {% for msa in state_msas %}
+                    <option value="{{ msa.state }},{{ msa.msa_code }},">{{ msa.STATE_NAME }}, {{ msa.NAME }}</option>
+                {% endfor %}
             {% endfor %}
         </select>
         <button  class="get_data">Get Data</button>
