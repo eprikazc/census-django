@@ -65,7 +65,7 @@ STATE_ABBREVIATIONS = {
 "Puerto Rico": "PR",
 }
 
-STATISTICS_OF_INTEREST = ("Total Population [1]", "TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]")
+STATISTICS_OF_INTEREST = ("TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]")
 
 redis_conn = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
 try:
