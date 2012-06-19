@@ -3,6 +3,7 @@
 <html xmlns="http://www.w3.org/1999/html">
 <head>
     <title></title>
+    <link rel="stylesheet" href="/static/jquery-ui.1.8.20.css" type="text/css" media="all" />
 </head>
 <body>
 <form action="" method="GET">
@@ -52,26 +53,38 @@
 
 <script type="text/template" id="template-table">
     <h4>Statistics for <%= area %></h4>
-    <% for (var stat_name in stat_data) { %>
-        <h5><%= stat_name %></h5>
-        <table>
-            <tbody>
-                <% _.each(stat_data[stat_name], function(elem) { %>
-                <tr>
-                    <td><%= elem[1] %></td>
-                    <td><%= elem[2] %></td>
-                </tr>
-                <% }); %>
-            </tbody>
-        </table>
-        <br/>
-    <% } %>
+    <div id="tabs">
+        <ul>
+        <%  var i=1;
+            for (var stat_name in stat_data) { %>
+            <li><a href="#tab<%= i %>"><%= stat_name %></a></li>
+        <%  i++;
+            } %>
+        </ul>
+        <%  i=1;
+            for (var stat_name in stat_data) { %>
+            <div id="tab<%= i %>">
+            <table>
+                <tbody>
+                    <% _.each(stat_data[stat_name], function(elem) { %>
+                    <tr>
+                        <td><%= elem[1] %></td>
+                        <td><%= elem[2] %></td>
+                    </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            </div>
+        <%  i++;
+            } %>
+    </div>
 </script>
 
 
 
 <script type="text/javascript" src="/static/jquery-1.7.2.min.js"></script>
 <script type="text/javascript" src="/static/underscore.js"></script>
+<script type="text/javascript" src="/static/jquery-ui-1.8.20.min.js"></script>
 <script type="text/javascript" src="/static/census.js"></script>
 </body>
 </html>

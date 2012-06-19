@@ -12,6 +12,7 @@ $(function(){
                     {stat_data: data, area: geo_region_selected.text()}
                 );
                 $("#table-area").html(table_data);
+                $("#tabs").tabs();
             },
             error: function(data){
                 $("#table-area").html("<p style='color:red'>Error loading data</p>");
