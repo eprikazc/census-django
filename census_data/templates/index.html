@@ -66,10 +66,13 @@
             <div id="tab<%= i %>">
             <table>
                 <tbody>
-                    <% _.each(stat_data[stat_name], function(elem) { %>
+                    <% _.each(stat_data[stat_name], function(elem) {
+                        var formatted_key = elem[1].replace(/!!/g, "");
+                        var formatted_value = addCommas(elem[2]);
+                    %>
                     <tr>
-                        <td><%= elem[1] %></td>
-                        <td><%= elem[2] %></td>
+                        <td><%= formatted_key %></td>
+                        <td><%= formatted_value %></td>
                     </tr>
                     <% }); %>
                 </tbody>
