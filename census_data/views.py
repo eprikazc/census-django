@@ -65,7 +65,7 @@ STATE_ABBREVIATIONS = {
 "Puerto Rico": "PR",
 }
 
-STATISTICS_OF_INTEREST = ("TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]")
+STATISTICS_OF_INTEREST = ("TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]", "Sex By Age [49]")
 
 redis_conn = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
 try:
@@ -114,6 +114,7 @@ def index(request):
             msa_res[i]["msa_code"] = msa_res[i]['metropolitan statistical area/micropolitan statistical area']
             msa_res[i]["STATE_ABBREVIATION"] = STATE_ABBREVIATIONS[state_data["NAME"]]
         msas[state_data['NAME']] = msa_res
+
     for i in range(len(counties_list)):
         state_name = state_names[counties_list[i]["state"]]
         counties_list[i]["STATE_ABBREVIATION"] = STATE_ABBREVIATIONS[state_name]
@@ -135,10 +136,6 @@ def get_statistics_for_area(request, area):
     # CENSUS API allows to pass maximum 5 statitics in request.
     # Therefore we have to make several successive requests to get all statistics from the group
     res = {}
-    redis_cache_key = area
-    cache_res = redis_conn.get(redis_cache_key)
-    if cache_res is not None:
-        return HttpResponse(cache_res)
     split_area = area.split(",")
     if len(split_area) ==1:
         api_method = census_api_client.sf1.state
@@ -157,7 +154,9 @@ def get_statistics_for_area(request, area):
         for i in range(0, len(api_params[statistic_type].keys()), 5):
             print "request #%s" %i
             j = min(len(api_params[statistic_type].keys()), i+5)
-            part_res = api_method(
+            part_res = cached_call(
+                "%s>>>%s>>>%s" %(area, statistic_type, i),
+                api_method,
                 tuple(api_params[statistic_type].keys()[i:j]),
                 *api_method_args
             )[0]
@@ -167,5 +166,4 @@ def get_statistics_for_area(request, area):
                 stat_data.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
         res[statistic_type] = sorted(stat_data, key=lambda elem: elem[0])
     res = dumps(res)
-    redis_conn.set(redis_cache_key, res)
     return HttpResponse(res)
