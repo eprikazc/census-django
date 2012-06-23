@@ -56,8 +56,10 @@
     <div id="tabs">
         <ul>
         <%  var i=1;
-            for (var stat_name in stat_data) { %>
-            <li><a href="#tab<%= i %>"><%= stat_name %></a></li>
+            for (var stat_name in stat_data) {
+                var stat_name_formatted = stat_name.replace(/\s*\[\d+\]/g, "").toUpperCase();
+            %>
+            <li><a href="#tab<%= i %>"><%= stat_name_formatted %></a></li>
         <%  i++;
             } %>
         </ul>
