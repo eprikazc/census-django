@@ -66,7 +66,7 @@ STATE_ABBREVIATIONS = {
 }
 
 STATISTICS_OF_INTEREST = (("SF1", "TENURE [4]"), ("SF1", "RACE [8]"), ("SF1", "VACANCY STATUS [8]"),
-                          ("SF1", "HOUSEHOLD TYPE [9]"), ("SF1", "Sex By Age [49]"))
+                          ("SF1", "HOUSEHOLD TYPE [9]"), ("SF1", "Sex By Age [49]"), ("ACS", "Median Household Income"))
 
 redis_conn = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
 try:
@@ -154,32 +154,45 @@ def get_statistics_for_area(request, area):
     res = {}
     split_area = area.split(",")
     if len(split_area) ==1:
-        api_method = census_api_client.sf1.state
+        sf1_method = census_api_client.sf1.state
+        acs_method = census_api_client.acs.state
         api_method_args = tuple(split_area)
     elif len(split_area) == 2:
-        api_method = census_api_client.sf1.state_county
+        sf1_method = census_api_client.sf1.state_county
+        acs_method = census_api_client.acs.state_county
         api_method_args = tuple(split_area)
     elif len(split_area) == 3:
-        api_method = census_api_client.sf1.state_msa
+        sf1_method = census_api_client.sf1.state_msa
+        acs_method = None # msa data are unavailable in ACS dataset
         api_method_args = tuple(split_area[:2]) # truncating 3rd dummy parameter
     else:
         raise Exception("Cannot parse string '%s'" %area)
     for data_set, statistic_type in STATISTICS_OF_INTEREST:
+        if data_set == "SF1":
+            api_method = sf1_method
+            api_params = sf1_api_params
+        elif data_set == "ACS":
+            if acs_method is None:
+                continue
+            api_method = acs_method
+            api_params = acs_api_params
+        else:
+            raise Exception('Invalid dataset "%s" for statistic "%s"' %(data_set, statistic_type))
         print "Processing %s from %s" %(statistic_type, data_set)
         stat_data = []
-        for i in range(0, len(sf1_api_params[statistic_type].keys()), 5):
+        for i in range(0, len(api_params[statistic_type].keys()), 5):
             print "request #%s" %i
-            j = min(len(sf1_api_params[statistic_type].keys()), i+5)
+            j = min(len(api_params[statistic_type].keys()), i+5)
             part_res = cached_call(
-                "%s>>>%s>>>%s" %(area, statistic_type, i),
+                "%s>>>%s>>>%s>>>%s" %(data_set, area, statistic_type, i),
                 api_method,
-                tuple(sf1_api_params[statistic_type].keys()[i:j]),
+                tuple(api_params[statistic_type].keys()[i:j]),
                 *api_method_args
             )[0]
             for key, value in part_res.items():
                 if key in ("county", "state", "metropolitan statistical area/micropolitan statistical area"):
                     continue
-                stat_data.append([sf1_api_params[statistic_type][key][0], sf1_api_params[statistic_type][key][1], value])
+                stat_data.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
         res[statistic_type] = sorted(stat_data, key=lambda elem: elem[0])
     res = dumps(res)
     return HttpResponse(res)
