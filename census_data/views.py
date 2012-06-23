@@ -65,7 +65,8 @@ STATE_ABBREVIATIONS = {
 "Puerto Rico": "PR",
 }
 
-STATISTICS_OF_INTEREST = ("TENURE [4]", "RACE [8]", "VACANCY STATUS [8]", "HOUSEHOLD TYPE [9]", "Sex By Age [49]")
+STATISTICS_OF_INTEREST = (("SF1", "TENURE [4]"), ("SF1", "RACE [8]"), ("SF1", "VACANCY STATUS [8]"),
+                          ("SF1", "HOUSEHOLD TYPE [9]"), ("SF1", "Sex By Age [49]"))
 
 redis_conn = redis.from_url(os.getenv('REDISTOGO_URL', 'redis://localhost:6379'))
 try:
@@ -74,18 +75,33 @@ except NameError:
     raise Exception("CENSUS_API_KEY setting is not defined!")
 census_api_client = Census(census_api_key)
 
-api_schema_str = redis_conn.get("api_schema_str")
-if api_schema_str is None:
-    api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/sf1.xml").read()
-    redis_conn.set("api_schema_str", api_schema_str)
-api_schema = ElementTree.fromstring(api_schema_str)
+sf1_api_schema_str = redis_conn.get("sf1_api_schema_str")
+if sf1_api_schema_str is None:
+    sf1_api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/sf1.xml").read()
+    redis_conn.set("sf1_api_schema_str", sf1_api_schema_str)
+sf1_api_schema = ElementTree.fromstring(sf1_api_schema_str)
 
-api_params = {}
-for concept_elem in api_schema.findall("concept"):
+sf1_api_params = {}
+for concept_elem in sf1_api_schema.findall("concept"):
     concept_name = concept_elem.attrib['name'].split(". ")[-1].strip()
-    api_params[concept_name] = {}
+    sf1_api_params[concept_name] = {}
     for index, variable in enumerate(concept_elem.findall("variable")):
-        api_params[concept_name][variable.attrib["name"]] = (index, variable.text)
+        sf1_api_params[concept_name][variable.attrib["name"]] = (index, variable.text)
+
+
+acs_api_schema_str = redis_conn.get("acs_api_schema_str")
+if acs_api_schema_str is None:
+    acs_api_schema_str = urllib.urlopen("http://www.census.gov/developers/data/2010acs5_variables.xml").read()
+    redis_conn.set("acs_api_schema_str", acs_api_schema_str)
+acs_api_schema = ElementTree.fromstring(acs_api_schema_str)
+
+acs_api_params = {}
+for concept_elem in acs_api_schema.findall("concept"):
+    concept_name = concept_elem.attrib['name'].split(". ")[-1].strip()
+    acs_api_params[concept_name] = {}
+    for index, variable in enumerate(concept_elem.findall("variable")):
+        acs_api_params[concept_name][variable.attrib["name"]] = (index, variable.text)
+
 
 
 def cached_call(key, method, *args, **kwargs):
@@ -124,7 +140,7 @@ def index(request):
     ))
 
 def get_statistics(request):
-    return HttpResponse(dumps(api_params.keys()))
+    return HttpResponse(dumps(sf1_api_params.keys()))
 
 def get_statistics_for_area(request, area):
     """
@@ -148,22 +164,22 @@ def get_statistics_for_area(request, area):
         api_method_args = tuple(split_area[:2]) # truncating 3rd dummy parameter
     else:
         raise Exception("Cannot parse string '%s'" %area)
-    for statistic_type in STATISTICS_OF_INTEREST:
-        print "Processing %s" %statistic_type
+    for data_set, statistic_type in STATISTICS_OF_INTEREST:
+        print "Processing %s from %s" %(statistic_type, data_set)
         stat_data = []
-        for i in range(0, len(api_params[statistic_type].keys()), 5):
+        for i in range(0, len(sf1_api_params[statistic_type].keys()), 5):
             print "request #%s" %i
-            j = min(len(api_params[statistic_type].keys()), i+5)
+            j = min(len(sf1_api_params[statistic_type].keys()), i+5)
             part_res = cached_call(
                 "%s>>>%s>>>%s" %(area, statistic_type, i),
                 api_method,
-                tuple(api_params[statistic_type].keys()[i:j]),
+                tuple(sf1_api_params[statistic_type].keys()[i:j]),
                 *api_method_args
             )[0]
             for key, value in part_res.items():
                 if key in ("county", "state", "metropolitan statistical area/micropolitan statistical area"):
                     continue
-                stat_data.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
+                stat_data.append([sf1_api_params[statistic_type][key][0], sf1_api_params[statistic_type][key][1], value])
         res[statistic_type] = sorted(stat_data, key=lambda elem: elem[0])
     res = dumps(res)
     return HttpResponse(res)
