@@ -29,7 +29,7 @@ class Command(BaseCommand):
         for state_data in states:
             state_msas = redis_conn.get("msa,%s" %state_data['state'])
             if state_msas is None:
-                raise CommandError('"counties" are not in redis cache!')
+                raise CommandError('"MSAs" for %s are not in redis cache!' %state_data['state'])
             state_msas = loads(state_msas)
             for msa_data in state_msas:
                 self.stdout.write("Processing msa: %s\n" %msa_data["NAME"])
