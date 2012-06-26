@@ -11,6 +11,45 @@ function addCommas(nStr)
     return x1 + x2;
 }
 
+function generatePieChart(renderToElement, title, chartName, chartData){
+    return new Highcharts.Chart({
+        chart: {
+            renderTo: renderToElement,
+            plotBackgroundColor: null,
+            plotBorderWidth: null,
+            plotShadow: false
+        },
+        title: {
+            text: title
+        },
+        tooltip: {
+            formatter: function() {
+                return '<b>'+ this.point.name +'</b>: '+ this.y;
+            }
+        },
+        plotOptions: {
+            pie: {
+                animation: false,
+                allowPointSelect: true,
+                cursor: 'pointer',
+                dataLabels: {
+                    enabled: true,
+                    color: '#000000',
+                    connectorColor: '#000000',
+                    formatter: function() {
+                        return '<b>'+ this.point.name +'</b>: '+ this.y;
+                    }
+                }
+            }
+        },
+        series: [{
+            type: 'pie',
+            name: chartName,
+            data: chartData
+        }]
+    });
+}
+
 $(function(){
     $("button.get_data").click(function(event){
         event.preventDefault();
@@ -27,48 +66,21 @@ $(function(){
                 );
                 $("#table-area").html(table_data);
                 $("#tabs").tabs();
-                var chart;
-                var chart_data = [];
-                for (var i=1; i<data["VACANCY STATUS [8]"].length; i++)
-                {
-                    chart_data.push([data["VACANCY STATUS [8]"][i][1], parseFloat(data["VACANCY STATUS [8]"][i][2])]);
-                }
-                chart = new Highcharts.Chart({
-                    chart: {
-                        renderTo: 'plot-area',
-                        plotBackgroundColor: null,
-                        plotBorderWidth: null,
-                        plotShadow: false
-                    },
-                    title: {
-                        text: 'Vacancy status pie chart'
-                    },
-                    tooltip: {
-                        formatter: function() {
-                            return '<b>'+ this.point.name +'</b>: '+ this.y;
-                        }
-                    },
-                    plotOptions: {
-                        pie: {
-                            animation: false,
-                            allowPointSelect: true,
-                            cursor: 'pointer',
-                            dataLabels: {
-                                enabled: true,
-                                color: '#000000',
-                                connectorColor: '#000000',
-                                formatter: function() {
-                                    return '<b>'+ this.point.name +'</b>: '+ this.y;
-                                }
-                            }
-                        }
-                    },
-                    series: [{
-                        type: 'pie',
-                        name: 'Vacancy status',
-                        data: chart_data
-                    }]
+                var chartData = [];
+                data["VACANCY STATUS [8]"].forEach(function(value, index){
+                    if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
                 });
+                generatePieChart("vacancy-plot-area", "Vacancy status pie chart", "Vacancy status", chartData);
+                chartData = [];
+                data["TENURE [4]"].forEach(function(value, index){
+                    if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
+                });
+                generatePieChart("tenure-plot-area", "Tenure pie chart", "Tenure", chartData);
+                chartData = [];
+                data["RACE [8]"].forEach(function(value, index){
+                    if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
+                });
+                generatePieChart("race-plot-area", "Race pie chart", "Race", chartData);
 
             },
             error: function(data){
