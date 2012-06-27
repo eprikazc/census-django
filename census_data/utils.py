@@ -1,4 +1,6 @@
 from json import loads
+from django.conf import settings
+
 
 STATE_ABBREVIATIONS = {
     "Alabama": "AL",
@@ -119,3 +121,36 @@ def convert_input_value_for_fred_app(input_string):
             raise Exception("MSA %s is not found" %msa_id)
 
     return res
+
+
+def wkhtml_pdf(template_src, context_dict):
+    from django.template import Context
+    from django.template.loader import get_template
+    from django.http import HttpResponse
+    import os
+    import subprocess
+
+    template = get_template(template_src)
+    context = Context(context_dict)
+    rendered = template.render(context)
+
+    full_temp_html_file_name = os.path.join(settings.STATIC_ROOT, 'temp_template.html')
+    file = open(full_temp_html_file_name, 'w')
+    file.write(rendered)
+    file.close()
+
+    wkhtmltopdf_command = os.path.join(settings.PROJECT_DIR, "..", "bin", os.getenv("WKHTMLTOPDF_BINARY", "wkhtmltopdf-i386"))
+    wkhtmltopdf_command = '%s -O Landscape %s -' %(wkhtmltopdf_command, full_temp_html_file_name)
+    popen = subprocess.Popen(
+        wkhtmltopdf_command,
+        bufsize=4096,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        shell=True
+    )
+
+    pdf_contents, err_contents = popen.communicate() #gets stdout and stderr
+    print "err_contents: %s" %err_contents
+    response = HttpResponse(pdf_contents, mimetype='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename=statistic_report.pdf'
+    return response

@@ -7,7 +7,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render_to_response
 from django.template.context import RequestContext
-from utils import STATE_ABBREVIATIONS
+from utils import STATE_ABBREVIATIONS, convert_input_value_for_fred_app, wkhtml_pdf
 import os
 import redis
 
@@ -140,5 +140,9 @@ def get_statistics_for_area(request, area):
                     continue
                 stat_data.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
         res[statistic_type] = sorted(stat_data, key=lambda elem: elem[0])
-    res = dumps(res)
-    return HttpResponse(res)
+    if request.GET.get("pdf") is not None:
+        res.update(convert_input_value_for_fred_app(area)) # adding region name data
+        return wkhtml_pdf("statistic_report.html", res)
+    else:
+        res = dumps(res)
+        return HttpResponse(res)
