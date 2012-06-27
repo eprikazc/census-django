@@ -6,6 +6,19 @@
     <link rel="stylesheet" href="/static/jquery-ui.1.8.20.css" type="text/css" media="all" />
 </head>
 <body>
-    <h6>Statistics report for {{ state }}</h6>
+    {% load extras %}
+    <h3>Statistics report for {{ state }}</h3>
+    {% for stat_name in STATISTICS_OF_INTEREST%}
+        {% get_context_value stat_name.1 as stat_value %}
+        <h6>{{ stat_name.1|clean_stat_name }}</h6>
+        <table>
+            {% for row in stat_value %}
+            <tr>
+                <td>{{ row.1|cut:"!" }}</td><td>{{ row.2|add_commas }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% endfor %}
+
 </body>
 </html>

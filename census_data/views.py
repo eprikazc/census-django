@@ -141,8 +141,13 @@ def get_statistics_for_area(request, area):
                 stat_data.append([api_params[statistic_type][key][0], api_params[statistic_type][key][1], value])
         res[statistic_type] = sorted(stat_data, key=lambda elem: elem[0])
     if request.GET.get("pdf") is not None:
+        res["STATISTICS_OF_INTEREST"] = STATISTICS_OF_INTEREST
         res.update(convert_input_value_for_fred_app(area)) # adding region name data
         return wkhtml_pdf("statistic_report.html", res)
+    if request.GET.get("html") is not None:
+        res["STATISTICS_OF_INTEREST"] = STATISTICS_OF_INTEREST
+        res.update(convert_input_value_for_fred_app(area)) # adding region name data
+        return render_to_response("statistic_report.html", RequestContext(request, res))
     else:
         res = dumps(res)
         return HttpResponse(res)
