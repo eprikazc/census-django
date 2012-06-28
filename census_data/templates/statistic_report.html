@@ -4,6 +4,48 @@
 <head>
     <title></title>
     <link rel="stylesheet" href="/static/jquery-ui.1.8.20.css" type="text/css" media="all" />
+    <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.2.min.js"></script>
+    <script type="text/javascript" src="http://code.highcharts.com/highcharts.js"></script>
+    <script type="text/javascript">
+        function generatePieChart(renderToElement, title, chartName, chartData){
+            return new Highcharts.Chart({
+                chart: {
+                    renderTo: renderToElement,
+                    plotBackgroundColor: null,
+                    plotBorderWidth: null,
+                    plotShadow: false
+                },
+                title: {
+                    text: title
+                },
+                tooltip: {
+                    formatter: function() {
+                        return '<b>'+ this.point.name +'</b>: '+ this.y;
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        animation: false,
+                        allowPointSelect: true,
+                        cursor: 'pointer',
+                        dataLabels: {
+                            enabled: true,
+                            color: '#000000',
+                            connectorColor: '#000000',
+                            formatter: function() {
+                                return '<b>'+ this.point.name +'</b>: '+ this.y;
+                            }
+                        }
+                    }
+                },
+                series: [{
+                    type: 'pie',
+                    name: chartName,
+                    data: chartData
+                }]
+            });
+        }
+    </script>
 </head>
 <body>
     {% load extras %}
@@ -18,7 +60,37 @@
             </tr>
             {% endfor %}
         </table>
+        <div id='{{ stat_name.1|clean_stat_name|cut:" "|lower }}-chart'></div>
+        <br/>
     {% endfor %}
 
+    <script type="text/javascript">
+        var sourceData;
+        var chartData;
+        {% get_context_value "RACE [8]" as stat_value %}
+        sourceData = {{ stat_value|safe }};
+        chartData = [];
+        sourceData.forEach(function(value, index){
+            if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
+        });
+        generatePieChart("race-chart", "Race pie chart", "Race", chartData);
+
+        {% get_context_value "VACANCY STATUS [8]" as stat_value %}
+        sourceData = {{ stat_value|safe }};
+        chartData = [];
+        sourceData.forEach(function(value, index){
+            if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
+        });
+        generatePieChart("vacancystatus-chart", "Vacancy status pie chart", "Vacancy status", chartData);
+
+        {% get_context_value "TENURE [4]" as stat_value %}
+        sourceData = {{ stat_value|safe }};
+        chartData = [];
+        sourceData.forEach(function(value, index){
+            if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
+        });
+        generatePieChart("tenure-chart", "Tenure pie chart", "Tenure", chartData);
+
+    </script>
 </body>
 </html>
