@@ -56,13 +56,14 @@ $(function(){
         $("#table-area").html("");
         $("#plot-area").html("");
         var geo_region_selected = $("option:selected", $(this).siblings("select"));
+        var stat_url = "/stat/" + geo_region_selected.attr("value") + "/";
         $.ajax({
-            url: "/stat/" + geo_region_selected.attr("value") + "/",
+            url: stat_url,
             dataType: "json",
             success: function(data){
                 var table_data = _.template(
                     $("#template-table").html(),
-                    {stat_data: data, area: geo_region_selected.text()}
+                    {stat_data: data, area: geo_region_selected.text(), pdf_report_url: stat_url + "?pdf"}
                 );
                 $("#table-area").html(table_data);
                 $("#tabs").tabs();
