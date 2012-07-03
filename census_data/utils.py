@@ -104,7 +104,7 @@ def convert_input_value_for_fred_app(input_string):
             raise Exception('"counties" are not in redis cache!')
         counties = loads(counties)
         for county_data in counties:
-            if county_data['county'] == county_id:
+            if county_data['county'] == county_id and county_data["state"] == state_id:
                 res['county'] = county_data['NAME']
                 break
         else:
