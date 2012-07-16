@@ -72,16 +72,21 @@ $(function(){
                     if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
                 });
                 generatePieChart("vacancy-plot-area", "Vacancy status pie chart", "Vacancy status", chartData);
+                $("#vacancy-plot-area").appendTo($("a:contains('VACANCY STATUS')").attr("href"));
+
                 chartData = [];
                 data["TENURE [4]"].forEach(function(value, index){
                     if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
                 });
                 generatePieChart("tenure-plot-area", "Tenure pie chart", "Tenure", chartData);
+                $("#tenure-plot-area").appendTo($("a:contains('TENURE')").attr("href"));
+
                 chartData = [];
                 data["RACE [8]"].forEach(function(value, index){
                     if (index != 0 ) chartData.push([value[1], parseFloat(value[2])]);
                 });
                 generatePieChart("race-plot-area", "Race pie chart", "Race", chartData);
+                $("#race-plot-area").appendTo($("a:contains('RACE')").attr("href"));
 
             },
             error: function(data){
